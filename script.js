@@ -3,12 +3,16 @@ const size = 5;
 let map = [];
 let playerPos = { x: 0, y: 0 };
 
+
 let player = {
   hp: 100,
   intelligence: 0,
   strength: 0,
-  luck: 0
+  luck: 0,
+  coins: 0,
+  inventory: []
 };
+
 
 let questions = {
   easy: [],
@@ -25,15 +29,23 @@ async function loadQuestions() {
 
 // INIT MAP
 function createMap() {
-  for (let y = 0; y < size; y++) {
-    let row = [];
-    for (let x = 0; x < size; x++) {
-      let type = Math.random() < 0.5 ? "question" : "fight";
-      row.push({ type });
+ 
+for (let y = 0; y < size; y++) {
+  let row = [];
+  for (let x = 0; x < size; x++) {
+
+    let type = Math.random() < 0.5 ? "question" : "fight";
+
+    // Bottom-right tile = win tile
+    if (x === size - 1 && y === size - 1) {
+      type = "goal";
     }
-    map.push(row);
+
+    row.push({ type });
   }
+  map.push(row);
 }
+
 
 // DRAW MAP
 function drawMap() {
@@ -66,13 +78,17 @@ function move(x, y) {
 }
 
 // HANDLE NODE
+
 function handleNode(node) {
   if (node.type === "question") {
     questionEvent();
-  } else {
+  } else if (node.type === "fight") {
     fightEvent();
+  } else if (node.type === "goal") {
+    goalEvent();
   }
 }
+
 
 // GET DIFFICULTY
 function getDifficulty() {
@@ -108,23 +124,36 @@ function questionEvent() {
 }
 
 // CORRECT ANSWER
+
 function correctAnswer() {
+  const difficulty = getDifficulty();
+
+  let coinReward = 2;
+  if (difficulty === "medium") coinReward = 4;
+  if (difficulty === "hard") coinReward = 6;
+
+  player.coins += coinReward;
+
   let choice = Math.random() < 0.5;
 
   if (choice) {
     player.intelligence++;
-    showMessage("Correct! +1 Intelligence");
+    showMessage(`Correct! +1 Intelligence, +${coinReward} coins`);
   } else {
-    showStatChoice();
+    showStatChoice(coinReward);
   }
 
   updateStats();
 }
 
+
 // STAT CHOICE
-function showStatChoice() {
+
+function showStatChoice(coins) {
   const eventDiv = document.getElementById("event");
-  eventDiv.innerHTML = "<h3>Choose a stat to increase:</h3>";
+  eventDiv.innerHTML = `<h3>Choose a stat (+${coins} coins awarded):</h3>`;
+
+  player.coins += coins;
 
   ["intelligence", "strength", "luck"].forEach(stat => {
     let btn = document.createElement("button");
@@ -157,6 +186,17 @@ function fightEvent() {
     startStreakChallenge();
   } else {
     startDiceFight();
+  }
+}
+
+
+//GOAL EVENT
+
+function goalEvent() {
+  if (player.coins >= 100) {
+    showMessage("🎉 You win! You reached the goal with enough coins!");
+  } else {
+    showMessage(`You need 100 coins to win. Current: ${player.coins}`);
   }
 }
 
@@ -209,15 +249,25 @@ function startStreakChallenge() {
 }
 
 // WIN
+
 function winFight() {
   let stat = ["intelligence", "strength", "luck"][Math.floor(Math.random() * 3)];
   player[stat]++;
 
-  let reward = Math.random() * 100 < (10 + player.luck * 2);
+  let coinReward = 5 + Math.floor(Math.random() * 6); // 5–10 coins
+  player.coins += coinReward;
 
-  showMessage(`Win! +1 ${stat}` + (reward ? " + potion!" : ""));
+  let rewardItem = Math.random() * 100 < (10 + player.luck * 2);
+
+  if (rewardItem) {
+    const item = Math.random() < 0.5 ? "50/50 Potion" : "Health Potion";
+    player.inventory.push(item);
+  }
+
+  showMessage(`Win! +1 ${stat}, +${coinReward} coins`);
   updateStats();
 }
+
 
 // LOSE
 function loseFight() {
@@ -231,15 +281,20 @@ function showMessage(msg) {
   document.getElementById("event").innerHTML = `<h3>${msg}</h3>`;
 }
 
+
 function updateStats() {
   document.getElementById("stats").innerHTML =
-    `HP: ${player.hp} | INT: ${player.intelligence} | STR: ${player.strength} | LUCK: ${player.luck}`;
+    `HP: ${player.hp} | INT: ${player.intelligence} | STR: ${player.strength} | LUCK: ${player.luck} | COINS: ${player.coins}
+    <br>Inventory: ${player.inventory.join(", ") || "Empty"}`;
 
   if (player.hp <= 0) {
     alert("Game Over!");
     location.reload();
   }
+
+  checkWin();
 }
+
 
 // START GAME
 async function start() {
