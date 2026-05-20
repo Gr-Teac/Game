@@ -295,6 +295,16 @@ function updateStats() {
   checkWin();
 }
 
+// WIN CHECK
+function checkWin() {
+  if (player.coins >= 100 &&
+      playerPos.x === size - 1 &&
+      playerPos.y === size - 1) {
+
+    showMessage("🎉 You win the game!");
+  }
+}
+
 
 // START GAME
 async function start() {
