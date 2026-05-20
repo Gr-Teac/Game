@@ -45,7 +45,7 @@ for (let y = 0; y < size; y++) {
   }
   map.push(row);
 }
-
+}
 
 // DRAW MAP
 function drawMap() {
